@@ -52,6 +52,40 @@ Scan the QR code shown in the terminal with Expo Go. The phone and the computer 
 | `npm run android` / `npm run ios` / `npm run web` | Start the dev server and open the app on that platform |
 | `npm test` | Run the unit tests |
 | `npm run typecheck` | Type-check the project with TypeScript |
+| `npm run build:apk` | Build a release APK locally into `dist/` (see below) |
+
+## 📦 Build a release APK (local, no Expo account)
+
+With [Android Studio](https://developer.android.com/studio) installed (it provides Java 17 and the Android SDK), one command is enough:
+
+```bash
+npm run build:apk
+```
+
+The APK is copied to `dist/tally-scorekeeper-<version>.apk`, ready to be installed on a phone. The first build downloads the required Android SDK, build tools and NDK, so it takes a while.
+
+- [`scripts/build-apk.sh`](scripts/build-apk.sh) uses `JAVA_HOME` and `ANDROID_HOME` when set, otherwise the ones from a standard Android Studio install. It generates the `android/` folder with `expo prebuild` (the folder is not committed) and runs Gradle.
+- To keep the app small (about 30 MB instead of about 90 MB), `expo-build-properties` in [`app.json`](app.json) builds only for `arm64-v8a`, which covers 64-bit phones, and enables R8 and resource shrinking. To also support old 32-bit phones, add `"armeabi-v7a"` to `buildArchs`.
+- Before each new release, increase `expo.android.versionCode` (and usually `expo.version`) in `app.json`: Android only installs an update over an existing app when its version code is higher.
+
+### Signing
+
+By default the release APK is signed with the shared debug key of the Expo template, which is fine for installing it on your own devices. To publish the app, sign it with your own key: create a keystore outside the repository and keep a backup,
+
+```bash
+mkdir -p ~/keystores && keytool -genkeypair -v -storetype PKCS12 -keystore ~/keystores/tally-scorekeeper.keystore -alias tally-scorekeeper -keyalg RSA -keysize 2048 -validity 10000
+```
+
+then add these lines to `~/.gradle/gradle.properties` (with a PKCS12 keystore the key password is the keystore password):
+
+```properties
+TALLY_UPLOAD_STORE_FILE=~/keystores/tally-scorekeeper.keystore
+TALLY_UPLOAD_STORE_PASSWORD=<keystore password>
+TALLY_UPLOAD_KEY_ALIAS=tally-scorekeeper
+TALLY_UPLOAD_KEY_PASSWORD=<keystore password>
+```
+
+[`plugins/withReleaseSigning.js`](plugins/withReleaseSigning.js) picks them up automatically. Android only updates an app signed with the same key, so switching key requires uninstalling the app first (its saved data is lost).
 
 ## 🗂️ Project structure
 
