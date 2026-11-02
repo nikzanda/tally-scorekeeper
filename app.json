@@ -38,6 +38,14 @@
             "enableShrinkResourcesInReleaseBuilds": true
           }
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#024947",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
       ]
     ],
     "scheme": "tallyscorekeeper"

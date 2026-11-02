@@ -61,6 +61,8 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 type ThemeContextValue = {
   theme: Theme;
   toggle: () => void;
+  /** False until the saved preference (if any) has been loaded from storage. */
+  isHydrated: boolean;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -77,6 +79,7 @@ function applyNativeOverride(preference: ThemePreference): void {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useColorScheme();
   const [preference, setPreference] = useState<ThemePreference>('system');
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +89,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         // Keep a choice made while loading instead of overwriting it with the stored one.
         setPreference((current) => (current === 'system' ? stored : current));
       })
-      .catch((error: unknown) => console.warn('Failed to load the theme preference', error));
+      .catch((error: unknown) => console.warn('Failed to load the theme preference', error))
+      .finally(() => {
+        if (!cancelled) setIsHydrated(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -107,8 +113,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [isDark]);
 
   const value = useMemo(
-    () => ({ theme: isDark ? darkTheme : lightTheme, toggle }),
-    [isDark, toggle],
+    () => ({ theme: isDark ? darkTheme : lightTheme, toggle, isHydrated }),
+    [isDark, toggle, isHydrated],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -129,4 +135,9 @@ export function useTheme(): Theme {
 /** Switches between the light and dark theme, remembering the choice. */
 export function useThemeToggle(): () => void {
   return useThemeContext().toggle;
+}
+
+/** False until the saved theme preference has been loaded, so the UI does not flash the wrong theme. */
+export function useThemeHydrated(): boolean {
+  return useThemeContext().isHydrated;
 }

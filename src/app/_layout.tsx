@@ -1,11 +1,17 @@
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { GameProvider } from '../state/GameContext';
-import { HistoryProvider } from '../state/HistoryContext';
-import { ThemeProvider, useTheme } from '../theme';
+import { SplashOverlay } from '../components/SplashOverlay';
+import { GameProvider, useGame } from '../state/GameContext';
+import { HistoryProvider, useHistory } from '../state/HistoryContext';
+import { ThemeProvider, useTheme, useThemeHydrated } from '../theme';
+
+// Called at module scope so it runs before the native splash would hide on its own;
+// SplashOverlay hides it once it is on screen.
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
@@ -23,6 +29,9 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const theme = useTheme();
+  const isThemeHydrated = useThemeHydrated();
+  const { isHydrated: isGameHydrated } = useGame();
+  const { isHydrated: isHistoryHydrated } = useHistory();
 
   return (
     <>
@@ -40,6 +49,7 @@ function RootNavigator() {
         <Stack.Screen name="players" options={{ title: 'Giocatori' }} />
         <Stack.Screen name="history" options={{ title: 'Storico partite' }} />
       </Stack>
+      <SplashOverlay isReady={isThemeHydrated && isGameHydrated && isHistoryHydrated} />
     </>
   );
 }
